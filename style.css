@@ -26,6 +26,13 @@ main {
     text-align: center;
 }
 
+.blog-title {
+    margin-top: 24px;
+    color: var(--menu_blue);
+    font-size: 24px;
+    font-weight: 700;
+}
+
 .bye-page {
     min-height: 100vh;
     display: flex;
@@ -81,6 +88,14 @@ main {
 
 .login-form .form-btn {
     margin: 0;
+}
+
+.login-link {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    text-decoration: none;
+    margin-top: 24px;
 }
 
 aside {

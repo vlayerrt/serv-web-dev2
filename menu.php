@@ -20,7 +20,7 @@ function main_menu()
         $active = $action === $key ? ' class="select"' : '';
         $html .= '<a' . $active . ' href="index.php?action=' . h($key) . '">' . h($title) . '</a>';
     }
-    $html .= '<a href="/bye">Выход</a>';
+    $html .= '<a href="index.php?action=bye">Выход</a>';
     $html .= '</header>';
 
     if ($action === 'view') {

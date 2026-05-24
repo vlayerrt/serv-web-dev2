@@ -36,21 +36,25 @@ function db()
 
 function current_action()
 {
+    if (route_hello_name() !== null) {
+        return 'hello';
+    }
+
     if (route_bye_name() !== null) {
         return 'bye';
     }
 
-    $allowed = array('view', 'add', 'edit', 'delete');
+    $allowed = array('view', 'add', 'edit', 'delete', 'hello', 'bye');
     $action = isset($_GET['action']) ? $_GET['action'] : 'view';
 
     return in_array($action, $allowed, true) ? $action : 'view';
 }
 
-function route_bye_name()
+function current_route_path()
 {
     $path = parse_url(isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '', PHP_URL_PATH);
     if ($path === null) {
-        return null;
+        return '';
     }
 
     $basePath = rtrim(str_replace('\\', '/', dirname(isset($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : '')), '/');
@@ -58,11 +62,42 @@ function route_bye_name()
         $path = substr($path, strlen($basePath));
     }
 
+    return $path;
+}
+
+function route_hello_name()
+{
+    $path = current_route_path();
+
+    if (preg_match('#^/hello(?:/([^/]+))?/?$#u', $path, $matches)) {
+        return isset($matches[1]) ? rawurldecode($matches[1]) : '';
+    }
+
+    return null;
+}
+
+function route_bye_name()
+{
+    $path = current_route_path();
+
     if (preg_match('#^/bye(?:/([^/]*))?/?$#u', $path, $matches)) {
         return isset($matches[1]) ? rawurldecode($matches[1]) : '';
     }
 
     return null;
+}
+
+function sayHello($name)
+{
+    $name = trim((string)$name);
+    $html = '<section class="bye-message"><p>Вход</p>';
+    $html .= '<form class="login-form is-open" method="post" action="index.php">';
+    $html .= '<input type="text" name="user_name" placeholder="Введите имя" value="' . h($name) . '">';
+    $html .= '<button class="form-btn" type="submit">Войти</button>';
+    $html .= '</form>';
+    $html .= '</section>';
+
+    return $html;
 }
 
 function sayBye($name)
@@ -76,11 +111,7 @@ function sayBye($name)
     $name = $isGuest ? 'Гость' : h($name);
 
     $html = '<section class="bye-message"><p>Пока, ' . $name . '</p>';
-    $html .= '<button class="form-btn show-login-btn" type="button" onclick="document.querySelector(\'.login-form\').classList.add(\'is-open\'); this.style.display = \'none\';">Войти</button>';
-    $html .= '<form class="login-form" method="post" action="index.php">';
-    $html .= '<input type="text" name="user_name" placeholder="Введите имя">';
-    $html .= '<button class="form-btn" type="submit">Войти</button>';
-    $html .= '</form>';
+    $html .= '<a class="form-btn login-link" href="index.php?action=hello">Войти</a>';
     $html .= '</section>';
 
     return $html;
@@ -154,9 +185,22 @@ require_once __DIR__ . '/edit.php';
 require_once __DIR__ . '/delete.php';
 
 $action = current_action();
-$content = '';
+$hasUserName = array_key_exists('user_name', $_SESSION);
+$isStartPage = (current_route_path() === '/' || current_route_path() === '/index.php') && !isset($_GET['action']);
+if (!$hasUserName && $action === 'view' && $isStartPage) {
+    $action = 'hello';
+}
 
-if ($action === 'bye') {
+$content = '';
+$title = null;
+$blogTitle = isset($_SESSION['user_name']) && trim((string)$_SESSION['user_name']) !== ''
+    ? trim((string)$_SESSION['user_name'])
+    : 'Мой блог';
+
+if ($action === 'hello') {
+    $title = 'Страница приветствия';
+    $content = sayHello(route_hello_name());
+} elseif ($action === 'bye') {
     $content = sayBye(route_bye_name());
 } elseif ($action === 'add') {
     $content = render_add();
@@ -167,18 +211,21 @@ if ($action === 'bye') {
 } else {
     $content = render_viewer(current_sort(), current_page());
 }
+
+$pageTitle = isset($title) && trim((string)$title) !== '' ? $title : 'Мой блог';
 ?>
 <!doctype html>
 <html lang="ru">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Записная книжка</title>
+    <title><?php echo h($pageTitle); ?></title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body<?php echo $action === 'bye' ? ' class="bye-page"' : ''; ?>>
+<body<?php echo ($action === 'bye' || $action === 'hello') ? ' class="bye-page"' : ''; ?>>
     <main>
-        <?php if ($action !== 'bye') { ?>
+        <?php if ($action !== 'bye' && $action !== 'hello') { ?>
+        <div class="blog-title"><?php echo h($blogTitle); ?></div>
         <h1>Записная книжка</h1>
         <?php echo main_menu(); ?>
         <?php } ?>
