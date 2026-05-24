@@ -1,5 +1,6 @@
 <?php
 define('APP_STARTED', true);
+session_start();
 
 function h($value)
 {
@@ -35,10 +36,54 @@ function db()
 
 function current_action()
 {
+    if (route_bye_name() !== null) {
+        return 'bye';
+    }
+
     $allowed = array('view', 'add', 'edit', 'delete');
     $action = isset($_GET['action']) ? $_GET['action'] : 'view';
 
     return in_array($action, $allowed, true) ? $action : 'view';
+}
+
+function route_bye_name()
+{
+    $path = parse_url(isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '', PHP_URL_PATH);
+    if ($path === null) {
+        return null;
+    }
+
+    $basePath = rtrim(str_replace('\\', '/', dirname(isset($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : '')), '/');
+    if ($basePath !== '' && $basePath !== '/' && strpos($path, $basePath) === 0) {
+        $path = substr($path, strlen($basePath));
+    }
+
+    if (preg_match('#^/bye(?:/([^/]*))?/?$#u', $path, $matches)) {
+        return isset($matches[1]) ? rawurldecode($matches[1]) : '';
+    }
+
+    return null;
+}
+
+function sayBye($name)
+{
+    $name = trim((string)$name);
+    if ($name === '' && isset($_SESSION['user_name'])) {
+        $name = trim((string)$_SESSION['user_name']);
+    }
+
+    $isGuest = $name === '';
+    $name = $isGuest ? 'Гость' : h($name);
+
+    $html = '<section class="bye-message"><p>Пока, ' . $name . '</p>';
+    $html .= '<button class="form-btn show-login-btn" type="button" onclick="document.querySelector(\'.login-form\').classList.add(\'is-open\'); this.style.display = \'none\';">Войти</button>';
+    $html .= '<form class="login-form" method="post" action="index.php">';
+    $html .= '<input type="text" name="user_name" placeholder="Введите имя">';
+    $html .= '<button class="form-btn" type="submit">Войти</button>';
+    $html .= '</form>';
+    $html .= '</section>';
+
+    return $html;
 }
 
 function current_sort()
@@ -94,6 +139,14 @@ function first_utf8_char($value)
     return preg_match('/^./us', $value, $matches) ? $matches[0] : '';
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['user_name'])) {
+    $userName = trim((string)$_POST['user_name']);
+    $_SESSION['user_name'] = $userName;
+
+    header('Location: index.php');
+    exit;
+}
+
 require_once __DIR__ . '/menu.php';
 require_once __DIR__ . '/viewer.php';
 require_once __DIR__ . '/add.php';
@@ -103,7 +156,9 @@ require_once __DIR__ . '/delete.php';
 $action = current_action();
 $content = '';
 
-if ($action === 'add') {
+if ($action === 'bye') {
+    $content = sayBye(route_bye_name());
+} elseif ($action === 'add') {
     $content = render_add();
 } elseif ($action === 'edit') {
     $content = render_edit();
@@ -121,10 +176,12 @@ if ($action === 'add') {
     <title>Записная книжка</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body<?php echo $action === 'bye' ? ' class="bye-page"' : ''; ?>>
     <main>
+        <?php if ($action !== 'bye') { ?>
         <h1>Записная книжка</h1>
         <?php echo main_menu(); ?>
+        <?php } ?>
         <?php echo $content; ?>
     </main>
 </body>

@@ -26,6 +26,63 @@ main {
     text-align: center;
 }
 
+.bye-page {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.bye-page main {
+    width: 100%;
+    min-height: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.bye-message {
+    width: min(90%, 520px);
+    padding: 35px 25px;
+    background-color: #fff;
+    border: 1px solid var(--back_a);
+    border-radius: 5px;
+    box-shadow: 0 10px 25px rgba(1, 5, 17, 0.12);
+}
+
+.bye-message p {
+    margin: 0;
+    color: var(--color_a);
+    font-size: 32px;
+    font-weight: 700;
+}
+
+.login-form {
+    display: none;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.login-form.is-open {
+    display: flex;
+}
+
+.show-login-btn {
+    margin-top: 24px;
+}
+
+.login-form input {
+    width: min(100%, 280px);
+}
+
+.login-form .form-btn {
+    margin: 0;
+}
+
 aside {
     background-color: var(--back_a);
     float: top;
