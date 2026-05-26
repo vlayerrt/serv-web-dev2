@@ -29,9 +29,61 @@ function db()
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )"
         );
+        $pdo->exec(
+            "CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )"
+        );
+
+        $pdo->prepare('INSERT OR IGNORE INTO users (name) VALUES (:name)')->execute(array('name' => 'Гость'));
+
+        $columns = $pdo->query('PRAGMA table_info(contacts)')->fetchAll(PDO::FETCH_ASSOC);
+        $hasAuthorId = false;
+        foreach ($columns as $column) {
+            if ($column['name'] === 'author_id') {
+                $hasAuthorId = true;
+                break;
+            }
+        }
+
+        if (!$hasAuthorId) {
+            $pdo->exec('ALTER TABLE contacts ADD COLUMN author_id INTEGER');
+        }
+
+        $guestId = (int)$pdo->query("SELECT id FROM users WHERE name = 'Гость'")->fetchColumn();
+        $stmt = $pdo->prepare('UPDATE contacts SET author_id = :author_id WHERE author_id IS NULL');
+        $stmt->execute(array('author_id' => $guestId));
     }
 
     return $pdo;
+}
+
+function current_user_name()
+{
+    $name = isset($_SESSION['user_name']) ? trim((string)$_SESSION['user_name']) : '';
+
+    return $name === '' ? 'Гость' : $name;
+}
+
+function user_id_by_name($name)
+{
+    $name = trim((string)$name);
+    $name = $name === '' ? 'Гость' : $name;
+
+    $stmt = db()->prepare('INSERT OR IGNORE INTO users (name) VALUES (:name)');
+    $stmt->execute(array('name' => $name));
+
+    $stmt = db()->prepare('SELECT id FROM users WHERE name = :name');
+    $stmt->execute(array('name' => $name));
+
+    return (int)$stmt->fetchColumn();
+}
+
+function current_user_id()
+{
+    return user_id_by_name(current_user_name());
 }
 
 function current_action()
@@ -173,6 +225,7 @@ function first_utf8_char($value)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['user_name'])) {
     $userName = trim((string)$_POST['user_name']);
     $_SESSION['user_name'] = $userName;
+    user_id_by_name($userName);
 
     header('Location: index.php');
     exit;

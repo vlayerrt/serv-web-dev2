@@ -24,11 +24,12 @@ function render_add()
 
         if (contact_is_valid($data)) {
             try {
+                $data['author_id'] = current_user_id();
                 $stmt = db()->prepare(
                     'INSERT INTO contacts
-                    (last_name, first_name, middle_name, gender, birth_date, phone, address, email, comment)
+                    (last_name, first_name, middle_name, gender, birth_date, phone, address, email, comment, author_id)
                     VALUES
-                    (:last_name, :first_name, :middle_name, :gender, :birth_date, :phone, :address, :email, :comment)'
+                    (:last_name, :first_name, :middle_name, :gender, :birth_date, :phone, :address, :email, :comment, :author_id)'
                 );
                 $stmt->execute($data);
                 $message = '<p class="success">Запись добавлена</p>';
